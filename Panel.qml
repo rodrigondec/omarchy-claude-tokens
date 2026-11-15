@@ -78,7 +78,8 @@ Panel {
 
   function countdown(sec) {
     sec = Math.max(0, Math.floor(sec))
-    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60)
+    var d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60)
+    if (d > 0) return d + "d " + h + "h"
     return h > 0 ? h + "h " + m + "m" : m + "m"
   }
 
@@ -181,17 +182,19 @@ Panel {
           spacing: Style.spacing.sm
           readonly property var s: root.stats ? root.stats.session : null
 
-          Row {
+          Item {
             width: parent.width
+            height: sessTotal.implicitHeight
             Text {
               text: "CURRENT SESSION (5h)"
               color: root.dim
               font.family: root.family
               font.pixelSize: Style.font.body
+              font.letterSpacing: 0.6
             }
-            Item { width: parent.width - sessTotal.implicitWidth - 175; height: 1 }
             Text {
               id: sessTotal
+              anchors.right: parent.right
               text: parent.parent.s && parent.parent.s.active ? root.fmt(root.sumModels(parent.parent.s.models)) + " tokens" : "—"
               color: root.foreground
               font.family: root.family
@@ -252,10 +255,58 @@ Panel {
             }
           }
 
+        }
+
+        // Weekly limit
+        Column {
+          id: weeklyCol
+          width: parent.width
+          spacing: Style.spacing.sm
+          visible: weeklyCol.w !== null
+          readonly property var w: root.weekly()
+          readonly property real pct: w ? Math.max(0, Math.min(1, Number(w.percent) || 0)) : 0
+          readonly property real endSec: w && w.resetsAt ? new Date(w.resetsAt).getTime() / 1000 : 0
+          readonly property color level: pct >= 0.85 ? Color.urgent : (pct >= 0.6 ? "#e0a030" : root.accent)
+
+          Item {
+            width: parent.width
+            height: weeklyPct.implicitHeight
+            Text {
+              text: "WEEKLY LIMIT (7d)"
+              color: root.dim
+              font.family: root.family
+              font.pixelSize: Style.font.body
+              font.letterSpacing: 0.6
+            }
+            Text {
+              id: weeklyPct
+              anchors.right: parent.right
+              text: Math.round(weeklyCol.pct * 100) + "%"
+              color: weeklyCol.level
+              font.family: root.family
+              font.pixelSize: Style.font.subtitle
+              font.bold: true
+            }
+          }
+
+          Item {
+            width: parent.width
+            height: Style.space(8)
+            Rectangle { anchors.fill: parent; radius: 3; color: Util.alpha(root.foreground, 0.16) }
+            Rectangle {
+              width: parent.width * weeklyCol.pct
+              height: parent.height
+              radius: 3
+              color: weeklyCol.level
+            }
+          }
+
           Text {
-            visible: root.weekly() !== null
-            text: root.weekly() ? "Weekly limit: " + Math.round(root.weekly().percent * (root.weekly().percent <= 1 ? 100 : 1))
-              + "%  ·  resets " + Qt.formatDateTime(new Date(root.weekly().resetsAt), "ddd HH:mm") : ""
+            visible: weeklyCol.endSec > 0
+            text: weeklyCol.endSec > 0
+              ? "Resets in " + root.countdown(weeklyCol.endSec - root.nowSec) + " ("
+                + Qt.formatDateTime(new Date(weeklyCol.endSec * 1000), "ddd HH:mm") + ")"
+              : ""
             color: root.dim
             font.family: root.family
             font.pixelSize: Style.font.body
