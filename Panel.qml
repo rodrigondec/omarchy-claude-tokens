@@ -120,7 +120,7 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: "󰄨"
+    text: "󰠰"
     tooltipText: "Claude Tokens"
     onPressed: function(buttonCode) { root.toggle() }
   }
