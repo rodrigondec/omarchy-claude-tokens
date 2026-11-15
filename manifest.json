@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.rodrigondec.claude-usage",
+  "id": "io.github.rodrigondec.claude-tokens",
   "name": "Claude Tokens",
   "version": "0.1.0",
   "author": "rodrigondec",

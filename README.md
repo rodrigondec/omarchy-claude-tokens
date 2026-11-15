@@ -26,8 +26,8 @@ omarchy plugin add https://github.com/rodrigondec/omarchy-claude-tokens.git --en
 ## Remove
 
 ```bash
-omarchy plugin disable io.github.rodrigondec.claude-usage
-omarchy plugin remove io.github.rodrigondec.claude-usage
+omarchy plugin disable io.github.rodrigondec.claude-tokens
+omarchy plugin remove io.github.rodrigondec.claude-tokens
 ```
 
 ## Settings

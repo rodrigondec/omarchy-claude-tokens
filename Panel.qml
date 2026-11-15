@@ -8,8 +8,8 @@ import qs.Ui
 Panel {
   id: root
 
-  moduleName: "io.github.rodrigondec.claude-usage"
-  ipcTarget: "io.github.rodrigondec.claude-usage"
+  moduleName: "io.github.rodrigondec.claude-tokens"
+  ipcTarget: "io.github.rodrigondec.claude-tokens"
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
