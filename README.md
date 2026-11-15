@@ -2,6 +2,8 @@
 
 An Omarchy bar widget that shows your Claude Code token consumption:
 
+![Claude Tokens panel](preview.png)
+
 - **Current session (5h):** tokens spent, a progress bar, time until the session resets, and the split per model. The reset time comes from Anthropic's own usage record when available, otherwise from the first message of the window.
 - **History by day:** stacked bars per Claude model for the last N days (default 14).
 - **Total per model** over the same period.
