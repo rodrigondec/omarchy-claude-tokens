@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.rodrigondec.claude-usage",
+  "name": "Claude Tokens",
+  "version": "0.1.0",
+  "author": "rodrigondec",
+  "license": "MIT",
+  "description": "Token consumption history per Claude model, plus the current 5-hour session with its usage and reset time",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "Panel.qml" },
+  "barWidget": {
+    "displayName": "Claude Tokens",
+    "description": "Daily token history per Claude model and the current session's consumption and reset countdown.",
+    "category": "System",
+    "aliases": ["claude", "claude-usage", "tokens"],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": { "historyDays": 14 },
+    "schema": [
+      { "key": "historyDays", "type": "integer", "label": "History days", "min": 7, "max": 60, "step": 1, "defaultValue": 14 }
+    ]
+  }
+}

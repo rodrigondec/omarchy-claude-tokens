@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+"""Print one JSON document with Claude Code token usage per day and model,
+and the current 5-hour session. Reads ~/.claude/projects/**/*.jsonl locally;
+per-file results are cached by mtime so repeat runs are fast."""
+import glob, json, os, sys, time
+from datetime import datetime, timezone, timedelta
+
+DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 14
+ROOT = os.path.expanduser("~/.claude/projects")
+CACHE = os.path.expanduser("~/.cache/claude-usage-plugin.json")
+USAGE = os.path.expanduser("~/.local/state/omarchy/agents/usage/claude.json")
+SESSION_SECONDS = 5 * 3600
+
+
+def parse_ts(s):
+    return datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
+
+
+def scan(path):
+    recs = {}
+    try:
+        with open(path, errors="replace") as f:
+            for line in f:
+                if '"usage"' not in line or '"assistant"' not in line:
+                    continue
+                try:
+                    d = json.loads(line)
+                    m = d["message"]
+                    u = m["usage"]
+                    key = (m.get("id") or d.get("uuid")) + "|" + (d.get("requestId") or "")
+                    model = m.get("model") or ""
+                    if model.startswith("<") or not model:
+                        continue
+                    recs[key] = [parse_ts(d["timestamp"]), model,
+                                 u.get("input_tokens") or 0, u.get("output_tokens") or 0,
+                                 u.get("cache_read_input_tokens") or 0,
+                                 u.get("cache_creation_input_tokens") or 0]
+                except Exception:
+                    continue
+    except OSError:
+        pass
+    return recs
+
+
+def load_cache():
+    try:
+        with open(CACHE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def main():
+    cache = load_cache()
+    fresh = {}
+    for path in glob.glob(ROOT + "/**/*.jsonl", recursive=True):
+        try:
+            st = os.stat(path)
+        except OSError:
+            continue
+        sig = [st.st_mtime, st.st_size]
+        c = cache.get(path)
+        fresh[path] = c if c and c["sig"] == sig else {"sig": sig, "recs": scan(path)}
+    try:
+        os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+        with open(CACHE + ".tmp", "w") as f:
+            json.dump(fresh, f)
+        os.replace(CACHE + ".tmp", CACHE)
+    except OSError:
+        pass
+
+    merged = {}
+    for c in fresh.values():
+        for k, r in c["recs"].items():
+            old = merged.get(k)
+            if old is None or r[3] > old[3]:
+                merged[k] = r
+    rows = sorted(merged.values(), key=lambda r: r[0])
+
+    now = time.time()
+    today = datetime.now().astimezone().date()
+    first_day = today - timedelta(days=DAYS - 1)
+    days = {(first_day + timedelta(days=i)).isoformat(): {} for i in range(DAYS)}
+    for ts, model, i, o, cr, cc in rows:
+        day = datetime.fromtimestamp(ts).astimezone().date().isoformat()
+        if day in days:
+            t = days[day].setdefault(model, [0, 0, 0, 0])
+            t[0] += i; t[1] += o; t[2] += cr; t[3] += cc
+
+    # 5-hour session blocks: a block opens at the hour of its first message.
+    start = None
+    for r in rows:
+        if start is None or r[0] >= start + SESSION_SECONDS:
+            start = r[0] - (r[0] % 3600)
+    session = {"active": False, "models": {}, "messages": 0}
+    if start is not None and now < start + SESSION_SECONDS:
+        session.update(active=True, start=start, end=start + SESSION_SECONDS)
+        for ts, model, i, o, cr, cc in rows:
+            if ts >= start:
+                t = session["models"].setdefault(model, [0, 0, 0, 0])
+                t[0] += i; t[1] += o; t[2] += cr; t[3] += cc
+                session["messages"] += 1
+
+    limits = []
+    try:
+        with open(USAGE) as f:
+            limits = json.load(f).get("limits", [])
+    except Exception:
+        pass
+    # Prefer Anthropic's own reset time for the session window when known.
+    for lim in limits:
+        if lim.get("label", "").startswith("Session") and lim.get("resetsAt"):
+            try:
+                end = parse_ts(lim["resetsAt"])
+                if end > now:
+                    session.update(active=True, end=end, start=end - SESSION_SECONDS)
+            except ValueError:
+                pass
+    print(json.dumps({"now": now, "days": days, "session": session, "limits": limits}))
+
+
+main()
