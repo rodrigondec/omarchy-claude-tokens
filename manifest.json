@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.rodrigondec.claude-tokens",
   "name": "Claude Tokens",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "rodrigondec",
   "license": "MIT",
   "description": "Token consumption history per Claude model, plus the current 5-hour session with its usage and reset time",
