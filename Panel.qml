@@ -164,12 +164,13 @@ Panel {
             font.bold: true
           }
           Item { width: parent.width - hint.implicitWidth - 150; height: 1 }
-          Text {
+          KeyHint {
             id: hint
-            text: root.withCache ? "c  hide cache reads" : "c  show cache reads"
-            color: root.dim
-            font.family: root.family
-            font.pixelSize: Style.font.body
+            keyName: "c"
+            label: root.withCache ? "hide cache reads" : "show cache reads"
+            textColor: root.foreground
+            fontFamily: root.family
+            onActivated: root.withCache = !root.withCache
           }
         }
 
