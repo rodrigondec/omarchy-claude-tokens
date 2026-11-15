@@ -27,7 +27,15 @@ Panel {
   readonly property string family: bar ? bar.fontFamily : Style.font.family
   readonly property string collectorPath: decodeURIComponent(
     String(Qt.resolvedUrl("claude-usage-collect")).replace("file://", ""))
-  readonly property var palette: [accent, "#e0a030", "#5fb0d8", "#b07ad8", "#6fc47a", "#d86f6f"]
+  // Fixed colour per model family (Okabe-Ito based, colour-blind safe, all
+  // >= 6:1 on dark backgrounds) so a model keeps its colour across days.
+  readonly property var familyColors: ({
+    "sonnet": "#56b4e9",
+    "opus": "#e69f00",
+    "haiku": "#1fb589",
+    "fable": "#d983b6"
+  })
+  readonly property var extraColors: ["#f0e442", "#9aa0b4"]
 
   // [input, output, cacheRead, cacheCreate] -> tokens counted
   function total(t) { return t[0] + t[1] + t[3] + (withCache ? t[2] : 0) }
@@ -72,9 +80,18 @@ Panel {
   }
 
   function colorFor(model) {
-    var i = modelList.indexOf(model)
-    return palette[(i < 0 ? 0 : i) % palette.length]
+    var name = String(model).toLowerCase()
+    for (var family in familyColors)
+      if (name.indexOf(family) >= 0) return familyColors[family]
+    var others = modelList.filter(function(m) {
+      var n = String(m).toLowerCase()
+      for (var f in familyColors) if (n.indexOf(f) >= 0) return false
+      return true
+    })
+    var i = others.indexOf(model)
+    return extraColors[Math.min(i < 0 ? 0 : i, extraColors.length - 1)]
   }
+
 
   function countdown(sec) {
     sec = Math.max(0, Math.floor(sec))
@@ -399,6 +416,14 @@ Panel {
                       width: root.sumModels(models) > 0
                         ? parent.width * root.total(models[modelData]) / root.sumModels(models) : 0
                       color: root.colorFor(modelData)
+                      // 1px gap so neighbouring segments don't blur together.
+                      Rectangle {
+                        anchors.right: parent.right
+                        width: 1
+                        height: parent.height
+                        color: Color.popups.background
+                        visible: index < Object.keys(models).length - 1 && parent.width > 2
+                      }
                     }
                   }
                 }
