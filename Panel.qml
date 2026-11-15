@@ -91,6 +91,13 @@ Panel {
     return null
   }
 
+  // Starts the default coding agent in a terminal (same command the built-in
+  // Agents panel uses); offers to pick one if none is set.
+  function openAgent() {
+    if (bar) bar.run("omarchy-agent --pick")
+    close()
+  }
+
   function refresh() { if (!collector.running) collector.running = true }
 
   onOpenedChanged: {
@@ -120,7 +127,7 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: "󰠰"
+    text: "󰚩"
     tooltipText: "Claude Tokens"
     onPressed: function(buttonCode) { root.toggle() }
   }
@@ -154,9 +161,13 @@ Panel {
         spacing: Style.spacing.panelGap
 
         // Header
-        Row {
+        Item {
           width: parent.width
+          height: Math.max(title.implicitHeight, headerRight.implicitHeight)
+
           Text {
+            id: title
+            anchors.verticalCenter: parent.verticalCenter
             text: "CLAUDE TOKENS"
             font.letterSpacing: 0.6
             color: root.accent
@@ -164,14 +175,49 @@ Panel {
             font.pixelSize: Style.font.title
             font.bold: true
           }
-          Item { width: parent.width - hint.implicitWidth - 150; height: 1 }
-          KeyHint {
-            id: hint
-            keyName: "c"
-            label: root.withCache ? "hide cache reads" : "show cache reads"
-            textColor: root.foreground
-            fontFamily: root.family
-            onActivated: root.withCache = !root.withCache
+
+          Row {
+            id: headerRight
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.spacing.lg
+
+            Rectangle {
+              id: agentButton
+              anchors.verticalCenter: parent.verticalCenter
+              width: agentLabel.implicitWidth + Style.space(16)
+              height: agentLabel.implicitHeight + Style.space(6)
+              radius: Style.cornerRadius
+              color: agentArea.containsMouse ? Util.alpha(root.accent, 0.25) : Util.alpha(root.foreground, 0.16)
+              border.width: 1
+              border.color: Util.alpha(root.accent, 0.5)
+              Text {
+                id: agentLabel
+                anchors.centerIn: parent
+                text: "open agent"
+                textFormat: Text.PlainText
+                color: root.foreground
+                font.family: root.family
+                font.pixelSize: Style.font.body
+              }
+              MouseArea {
+                id: agentArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.openAgent()
+              }
+            }
+
+            KeyHint {
+              id: hint
+              anchors.verticalCenter: parent.verticalCenter
+              keyName: "c"
+              label: root.withCache ? "hide cache reads" : "show cache reads"
+              textColor: root.foreground
+              fontFamily: root.family
+              onActivated: root.withCache = !root.withCache
+            }
           }
         }
 

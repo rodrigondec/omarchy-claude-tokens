@@ -9,7 +9,7 @@ An Omarchy bar widget that shows your Claude Code token consumption:
 - **Total per model** over the same period.
 - The weekly limit and its reset, when known.
 
-Click the bar icon to open the panel. `c` toggles cache-read tokens (hidden by default, they dwarf everything else), `r` refreshes, Esc closes.
+Click the bar icon to open the panel. The **open agent** button starts your default coding agent in a terminal (`omarchy agent`). `c` toggles cache-read tokens (hidden by default, they dwarf everything else), `r` refreshes, Esc closes.
 
 Everything is computed locally from `~/.claude/projects/**/*.jsonl`. No network access. The collector only runs while the panel is open, and caches per-file results in `~/.cache/claude-usage-plugin.json`.
 
