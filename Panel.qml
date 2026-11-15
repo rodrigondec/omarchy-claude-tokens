@@ -30,7 +30,7 @@ Panel {
   // Fixed colour per model family (Okabe-Ito based, colour-blind safe, all
   // >= 6:1 on dark backgrounds) so a model keeps its colour across days.
   readonly property var familyColors: ({
-    "sonnet": "#56b4e9",
+    "sonnet": "#6f9fd0",
     "opus": "#e69f00",
     "haiku": "#1fb589",
     "fable": "#d983b6"
