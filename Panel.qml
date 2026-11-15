@@ -67,6 +67,20 @@ Panel {
     return Object.keys(acc).sort(function(a, b) { return acc[b] - acc[a] })
   }
 
+  // Smaller models first, the most capable last; unknown models go at the end
+  // (ordered by usage, as modelList already is).
+  readonly property var modelsByComplexity: {
+    var order = ["haiku", "sonnet", "opus", "fable"]
+    function rank(m) {
+      var n = String(m).toLowerCase()
+      for (var i = 0; i < order.length; i++) if (n.indexOf(order[i]) >= 0) return i
+      return order.length
+    }
+    return modelList.map(function(m, i) { return { m: m, r: rank(m), i: i } })
+      .sort(function(a, b) { return a.r - b.r || a.i - b.i })
+      .map(function(x) { return x.m })
+  }
+
   readonly property var dayList: {
     if (!stats || !stats.days) return []
     return Object.keys(stats.days).sort()
@@ -452,7 +466,7 @@ Panel {
             font.pixelSize: Style.font.body
           }
           Repeater {
-            model: root.modelList
+            model: root.modelsByComplexity
             delegate: Row {
               width: content.width
               readonly property real sum: {
