@@ -114,6 +114,18 @@ Panel {
     return h > 0 ? h + "h " + m + "m" : m + "m"
   }
 
+  function sessionLimit() {
+    if (!stats || !stats.limits) return null
+    for (var i = 0; i < stats.limits.length; i++)
+      if (String(stats.limits[i].label).indexOf("Session") === 0) return stats.limits[i]
+    return null
+  }
+
+  // Same thresholds for every limit meter: calm, then amber, then red.
+  function levelColor(pct) {
+    return pct >= 0.85 ? Color.urgent : (pct >= 0.6 ? "#e0a030" : accent)
+  }
+
   function weekly() {
     if (!stats || !stats.limits) return null
     for (var i = 0; i < stats.limits.length; i++)
@@ -279,11 +291,16 @@ Panel {
           width: parent.width
           spacing: Style.spacing.sm
           readonly property var s: root.stats ? root.stats.session : null
+          readonly property var lim: root.sessionLimit()
+          // Usage of the plan's 5-hour limit; null when the plan reports none.
+          readonly property real pct: lim ? Math.max(0, Math.min(1, Number(lim.percent) || 0)) : -1
+          readonly property string tokensText: s && s.active ? root.fmt(root.sumModels(s.models)) + " tokens" : "—"
 
           Item {
             width: parent.width
-            height: sessTotal.implicitHeight
+            height: Math.max(sessLabel.implicitHeight, sessRight.implicitHeight)
             Text {
+              id: sessLabel
               text: "CURRENT SESSION (5h)"
               color: root.dim
               font.family: root.family
@@ -291,12 +308,14 @@ Panel {
               font.letterSpacing: 0.6
             }
             Text {
-              id: sessTotal
+              id: sessRight
               anchors.right: parent.right
-              text: parent.parent.s && parent.parent.s.active ? root.fmt(root.sumModels(parent.parent.s.models)) + " tokens" : "—"
-              color: root.foreground
+              // Usage % when the plan reports a limit, otherwise the token count.
+              text: sessionCol.pct >= 0 ? Math.round(sessionCol.pct * 100) + "%" : sessionCol.tokensText
+              color: sessionCol.pct >= 0 ? root.levelColor(sessionCol.pct) : root.foreground
               font.family: root.family
               font.pixelSize: Style.font.subtitle
+              font.bold: sessionCol.pct >= 0
             }
           }
 
@@ -305,12 +324,10 @@ Panel {
             height: Style.space(8)
             Rectangle { anchors.fill: parent; radius: 3; color: Util.alpha(root.foreground, 0.16) }
             Rectangle {
-              readonly property var s: parent.parent.s
-              width: s && s.active
-                ? parent.width * Math.max(0, Math.min(1, (root.nowSec - s.start) / (s.end - s.start))) : 0
+              width: sessionCol.pct >= 0 ? parent.width * sessionCol.pct : 0
               height: parent.height
               radius: 3
-              color: root.accent
+              color: sessionCol.pct >= 0 ? root.levelColor(sessionCol.pct) : root.accent
             }
           }
 
@@ -318,7 +335,7 @@ Panel {
             readonly property var s: parent.s
             text: s && s.active
               ? "Resets in " + root.countdown(s.end - root.nowSec) + " (" + Qt.formatTime(new Date(s.end * 1000), "HH:mm") + ")  ·  "
-                + s.messages + " replies"
+                + s.messages + " replies" + (sessionCol.pct >= 0 ? "  ·  " + sessionCol.tokensText : "")
               : (root.stats ? "No active session" : "Loading…")
             color: root.dim
             font.family: root.family
@@ -364,7 +381,7 @@ Panel {
           readonly property var w: root.weekly()
           readonly property real pct: w ? Math.max(0, Math.min(1, Number(w.percent) || 0)) : 0
           readonly property real endSec: w && w.resetsAt ? new Date(w.resetsAt).getTime() / 1000 : 0
-          readonly property color level: pct >= 0.85 ? Color.urgent : (pct >= 0.6 ? "#e0a030" : root.accent)
+          readonly property color level: root.levelColor(pct)
 
           Item {
             width: parent.width
