@@ -129,19 +129,40 @@ Panel {
     close()
   }
 
+  readonly property real limitsAge: stats && stats.limitsMeta && stats.limitsMeta.ageSec !== null
+    ? stats.limitsMeta.ageSec + (nowSec - stats.now) : -1
+  readonly property bool limitsOld: stats && stats.limitsMeta
+    ? (stats.limitsMeta.stale || limitsAge < 0 || limitsAge > 900) : false
+
   function refresh() { if (!collector.running) collector.running = true }
+  function refreshLimits() { if (!limitsUpdater.running) limitsUpdater.running = true }
 
   onOpenedChanged: {
-    if (opened) { nowSec = Date.now() / 1000; refresh() }
+    if (opened) { nowSec = Date.now() / 1000; refresh(); refreshLimits() }
   }
 
   Timer {
     interval: 30000; repeat: true; running: root.opened
     onTriggered: { root.nowSec = Date.now() / 1000; root.refresh() }
   }
+  // Plan limits come from Anthropic's rate-limited usage endpoint: ask for
+  // fresh numbers every 5 minutes while the panel stays open, no more often.
+  Timer {
+    interval: 300000; repeat: true; running: root.opened
+    onTriggered: root.refreshLimits()
+  }
   Timer {
     interval: 1000; repeat: true; running: root.opened
     onTriggered: root.nowSec = Date.now() / 1000
+  }
+
+  // Asks Omarchy to refresh the plan limits (session / weekly percentages).
+  // The usage record is otherwise only refreshed by the built-in Agents
+  // plugin, so without this the percentages go stale when it is disabled.
+  Process {
+    id: limitsUpdater
+    command: ["omarchy-agent-usage-update", "--limits-only", "claude"]
+    onRunningChanged: if (!running) root.refresh()
   }
 
   Process {
@@ -385,6 +406,16 @@ Panel {
                 + Qt.formatDateTime(new Date(weeklyCol.endSec * 1000), "ddd HH:mm") + ")"
               : ""
             color: root.dim
+            font.family: root.family
+            font.pixelSize: Style.font.body
+          }
+
+          Text {
+            visible: root.limitsOld
+            text: root.limitsAge >= 0
+              ? "⚠ Limits last updated " + root.countdown(root.limitsAge) + " ago"
+              : "⚠ Limits not available"
+            color: "#e0a030"
             font.family: root.family
             font.pixelSize: Style.font.body
           }

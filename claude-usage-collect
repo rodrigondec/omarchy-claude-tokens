@@ -102,9 +102,15 @@ def main():
                 session["messages"] += 1
 
     limits = []
+    meta = {"ageSec": None, "stale": True}
     try:
         with open(USAGE) as f:
-            limits = json.load(f).get("limits", [])
+            rec = json.load(f)
+        limits = rec.get("limits", [])
+        fetched = rec.get("limitsFetchedAt")
+        if fetched:
+            meta["ageSec"] = max(0, now - fetched / 1000)
+        meta["stale"] = bool(rec.get("limitsStale"))
     except Exception:
         pass
     # Prefer Anthropic's own reset time for the session window when known.
@@ -116,7 +122,7 @@ def main():
                     session.update(active=True, end=end, start=end - SESSION_SECONDS)
             except ValueError:
                 pass
-    print(json.dumps({"now": now, "days": days, "session": session, "limits": limits}))
+    print(json.dumps({"now": now, "days": days, "session": session, "limits": limits, "limitsMeta": meta}))
 
 
 main()
