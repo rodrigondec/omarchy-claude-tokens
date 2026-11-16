@@ -12,7 +12,7 @@ An Omarchy bar widget that shows your Claude Code token consumption:
 
 Click the bar icon to open the panel. The **open agent** button starts your default coding agent in a terminal (`omarchy agent`). `c` toggles cache-read tokens (hidden by default, they dwarf everything else), `r` refreshes, Esc closes.
 
-Everything is computed locally from `~/.claude/projects/**/*.jsonl`. No network access. The collector only runs while the panel is open, and caches per-file results in `~/.cache/claude-usage-plugin.json`.
+Token history is computed locally from `~/.claude/projects/**/*.jsonl`. The plugin itself makes no network calls: the plan limits come from Omarchy's own `omarchy-agent-usage-update`, which queries Anthropic's usage endpoint with your existing Claude Code login. The collector only runs while the panel is open, and caches per-file results in `~/.cache/claude-usage-plugin.json`.
 
 Secondary text is derived from the theme's text colour (75% opacity, about 5:1 contrast on dark themes) instead of the theme's `muted` colour, which is often too faint to read comfortably.
 
